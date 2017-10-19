@@ -2,3 +2,7 @@
 *.txt
 
 test\.py
+
+data_folder\.json
+
+data_file\.json
