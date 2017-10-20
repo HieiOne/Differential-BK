@@ -1,14 +1,19 @@
 #!/usr/bin/env python3
-#TODO remove folders function, if .json doesn't exist: create it, define what i can define in the functions and clear out the for's
+#TODO if .json doesn't exist: create it, define what i can define in the functions and clear out the for's
 #Known bugs: Doesn't detect empty folders
+#DONE: Implemented: remove folders function
 
 import os, hashlib, json
 from shutil import copy2
 
-backup_folder = os.fsencode("D:\projects\own-differential-backup\\backup")
-data_folder = os.fsencode("D:\projects\own-differential-backup\data")
-file_snapshot_location = os.fsencode("D:\projects\own-differential-backup\data_file.json")
-folder_snapshot_location = os.fsencode("D:\projects\own-differential-backup\data_folder.json")
+#backup_folder = os.fsencode("D:\projects\own-differential-backup\\backup") #Windows Path
+#data_folder = os.fsencode("D:\projects\own-differential-backup\data") #Windows Path
+data_folder = os.fsencode("/mnt/SHARED_DATA/Repository/odb/data") #Linux Path
+backup_folder = os.fsencode("/mnt/SHARED_DATA/Repository/odb/backup") #Linux Path
+#file_snapshot_location = os.fsencode("D:\projects\own-differential-backup\data_file.json")
+#folder_snapshot_location = os.fsencode("D:\projects\own-differential-backup\data_folder.json")
+file_snapshot_location = os.fsencode("/mnt/SHARED_DATA/Repository/odb/data_file.json")
+folder_snapshot_location = os.fsencode("/mnt/SHARED_DATA/Repository/odb/data_folder.json")
 
 def make_dirs(directory): #make folders
     directory = directory.replace(data_folder, backup_folder).decode('utf-8') #decode to remove the bytes b'' of python
@@ -63,18 +68,20 @@ for subdir, dirs, files in os.walk(data_folder): #os.walk returns 3 values, subd
 for subdir, dirs, files in os.walk(backup_folder):
     for file in files: #gotta remove file not data_file, remember you cunt
         file = os.path.join(subdir, file)
+        folder = subdir.decode('utf-8')
+        _folder = subdir.replace(backup_folder, data_folder).decode('utf-8')
+       # print(_folder, folder)
         _file = file.decode('utf-8')
         data_file = file.replace(backup_folder, data_folder).decode('utf-8')
-        print(subdir)
-        print(dirs)
-        #if not os.path.exists(_data_folder):
-        #    print(subdir)
 
         if not os.path.exists(data_file):
-            print(data_file, "Was not found")
+            print(data_file, "Was not found, removing...")
             os.remove(_file)
             del files_snapshot[data_file] #add an execption that in case i couldn't remove it from the files_snapshot, to remove the file eitherway without giving a KeyError
-
+        
+        if not os.path.exists(_folder): #works but can't remove not empty folders
+            print(_folder, "Folder was not found, removing...")
+            os.removedirs(folder)
 
 
 save_data(file_snapshot_location, files_snapshot) #saves the new file_snapshot
