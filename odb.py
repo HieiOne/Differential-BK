@@ -42,7 +42,7 @@ files_snapshot = load_data(file_snapshot_location) #only files
 folders_snapshot = load_data(folder_snapshot_location) #only folders
 
 #this is to add new files and folders
-for subdir, dirs, files in os.walk(data_folder):
+for subdir, dirs, files in os.walk(data_folder): #os.walk returns 3 values, subdirs, dirs and files
     for file in files:
         file = os.path.join(subdir,file) #putting path and file name together
         _file = os.path.join(subdir,file).decode('utf-8')
@@ -65,9 +65,10 @@ for subdir, dirs, files in os.walk(backup_folder):
         file = os.path.join(subdir, file)
         _file = file.decode('utf-8')
         data_file = file.replace(backup_folder, data_folder).decode('utf-8')
-        
-        if subdir not in folders_snapshot:
-            pass
+        print(subdir)
+        print(dirs)
+        #if not os.path.exists(_data_folder):
+        #    print(subdir)
 
         if not os.path.exists(data_file):
             print(data_file, "Was not found")
