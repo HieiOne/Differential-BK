@@ -1,36 +1,25 @@
 #!/usr/bin/env python3
-#TODO if .json doesn't exist: create it, define what i can define in the functions and clear out the for's
-#Known bugs: Doesn't detect empty folders
-#DONE: Implemented: remove folders function
+#TODO try to -> destination = file.replace(data_folder, backup_folder).decode('utf-8') #destination -> backup path, file -> data path copy2(file, destination, improve this
+#TODO differents folders for backup and data (which will be related), configuration file apart
 
 import os, hashlib, json
 from shutil import copy2
 
-#backup_folder = os.fsencode("D:\projects\own-differential-backup\\backup") #Windows Path
-#data_folder = os.fsencode("D:\projects\own-differential-backup\data") #Windows Path
-data_folder = os.fsencode("/mnt/SHARED_DATA/Repository/odb/data") #Linux Path
-backup_folder = os.fsencode("/mnt/SHARED_DATA/Repository/odb/backup") #Linux Path
-#file_snapshot_location = os.fsencode("D:\projects\own-differential-backup\data_file.json")
-#folder_snapshot_location = os.fsencode("D:\projects\own-differential-backup\data_folder.json")
-file_snapshot_location = os.fsencode("/mnt/SHARED_DATA/Repository/odb/data_file.json")
-folder_snapshot_location = os.fsencode("/mnt/SHARED_DATA/Repository/odb/data_folder.json")
+###WINDOWS###
+backup_folder = os.fsencode("D:\projects\own-differential-backup\\backup") #double \ to escape it (damn windows..)
+data_folder = os.fsencode("D:\projects\own-differential-backup\data") 
+file_snapshot_location = os.fsencode("D:\projects\own-differential-backup\data_file.json")
+folder_snapshot_location = os.fsencode("D:\projects\own-differential-backup\data_folder.json")
+###LINUX####
+#data_folder = os.fsencode("/mnt/SHARED_DATA/Repository/odb/data")
+#backup_folder = os.fsencode("/mnt/SHARED_DATA/Repository/odb/backup")
+#file_snapshot_location = os.fsencode("/mnt/SHARED_DATA/Repository/odb/data_file.json")
+#folder_snapshot_location = os.fsencode("/mnt/SHARED_DATA/Repository/odb/data_folder.json")
 
-def make_dirs(directory): #make folders
-    directory = directory.replace(data_folder, backup_folder).decode('utf-8') #decode to remove the bytes b'' of python
-    os.makedirs(directory, exist_ok=True) #exist_ok allows me to avoid folders which already exists
-
-def remove_dirs(directory): #remove folders (Not implemented)
-    os.removedirs(directory)
-
-def remove_files(file): #remove files (Not implemented)
-    os.remove(file)
-
-def copy_file(file): #copy files
-    destination = file.replace(data_folder, backup_folder).decode('utf-8') #destination -> backup path, file -> data path
-    copy2(file, destination)
-
-def hash(file): #defines md5sum of passed files
-    return hashlib.md5(open(file,'rb').read(4096)).hexdigest() # the 4096 is to allow big files
+def create_json(f_json, data): #data = {} or [] depending if its list or dictionary
+    f = open(f_json,"w+")
+    f.write(data)
+    f.close()
 
 def save_data(snapshot_location, data):
     with open(snapshot_location, 'w') as fp:
@@ -41,48 +30,77 @@ def load_data(snapshot_location):
         data = json.load(fp)
     return data
 
+def hash(file): #defines md5sum of passed files
+    return hashlib.md5(open(file,'rb').read(4096)).hexdigest() # the 4096 is to allow big files
+
+def make_dirs(directory, folders_snapshot): #make folders
+    _directory = directory.replace(data_folder, backup_folder).decode('utf-8') #decode to remove the bytes b'' of python
+    os.makedirs(_directory, exist_ok=True) #exist_ok allows me to avoid folders which already exists
+    folders_snapshot.append(os.path.join(directory.decode('utf-8')))
+
+def remove_dirs(directory, data_directory, folders_snapshot): #remove folders (Not implemented)
+    print(data_directory, "Folder was not found, removing...")
+    os.removedirs(directory)
+    folders_snapshot.remove(data_directory) #works, I don't use del because it breaks with empty folders
+
+def remove_files(file, data_file, files_snapshot): #remove files (Not implemented)
+    print(data_file, "Was not found, removing...")
+    os.remove(file)
+    del files_snapshot[data_file]
+
+def copy_file(file, md5, files_snapshot): #copy files
+    print("Copying file", file)
+    destination = file.replace(data_folder, backup_folder).decode('utf-8') #destination -> backup path, file -> data path
+    copy2(file, destination)
+    files_snapshot[file.decode('utf-8')] = md5 #this subs the key also
+
+def look_for_new_files(data_folder, files_snapshot, folders_snapshot): #this is to find new files and folders to add 
+    for subdir, dirs, files in os.walk(data_folder): #os.walk returns 3 values, subdirs, dirs and files
+        if not dirs and not files: #detects empty sub-folders
+            make_dirs(subdir, folders_snapshot)
+
+        for file in files:
+            file = os.path.join(subdir,file) #putting path and file name together
+            _file = os.path.join(subdir,file).decode('utf-8')
+            md5 = hash(file) #calculating the md5sum
+
+            if subdir.decode('utf-8') not in folders_snapshot:
+                make_dirs(subdir, folders_snapshot) #subdirs lets me grab only the directories :thumbs_up:
+
+            if (_file not in files_snapshot) or (files_snapshot[_file] != md5): #no need to re-add, going to implement a checking function (BUG: check subdir+file, not only file)
+                copy_file(file, md5, files_snapshot)
+
+def look_for_removen_files(backup_folder, data_folder, files_snapshot, folders_snapshot): #this is to find removen files and folders to remove from backup folder
+    for subdir, dirs, files in os.walk(backup_folder):
+        folder = subdir.decode('utf-8')
+        _folder = subdir.replace(backup_folder, data_folder).decode('utf-8') #to check if it's on data folder
+
+        if not dirs and not files and not os.path.exists(_folder): #removes empty folders
+            remove_dirs(folder, _folder, folders_snapshot)
+
+        for file in files: #gotta remove file not data_file, remember you cunt
+            file = os.path.join(subdir, file)
+            _file = file.decode('utf-8')
+            data_file = file.replace(backup_folder, data_folder).decode('utf-8')
+
+            if not os.path.exists(data_file):
+                remove_files(_file, data_file, files_snapshot)
+            
+            if not os.path.exists(_folder): #works but can't remove not empty folders
+                remove_dirs(folder, _folder, folders_snapshot)
+
+def main(file_snapshot_location, folder_snapshot_location): 
+    if not os.path.exists(file_snapshot_location) or not os.path.exists(folder_snapshot_location): #checks if the .json exists and if not it creates them
+        create_json(file_snapshot_location, "{}")
+        create_json(folder_snapshot_location, "[]")
+    files_snapshot = load_data(file_snapshot_location) #only files
+    folders_snapshot = load_data(folder_snapshot_location) #only folders
+    look_for_new_files(data_folder, files_snapshot, folders_snapshot)
+    look_for_removen_files(backup_folder, data_folder, files_snapshot, folders_snapshot)
+    save_data(file_snapshot_location, files_snapshot) #saves the new file_snapshot
+    save_data(folder_snapshot_location, folders_snapshot) #saves the new folder_snapshot
+
 #it all starts here
 
-files_snapshot = load_data(file_snapshot_location) #only files
-folders_snapshot = load_data(folder_snapshot_location) #only folders
-
-#this is to add new files and folders
-for subdir, dirs, files in os.walk(data_folder): #os.walk returns 3 values, subdirs, dirs and files
-    for file in files:
-        file = os.path.join(subdir,file) #putting path and file name together
-        _file = os.path.join(subdir,file).decode('utf-8')
-        md5 = hash(file) #calculating the md5sum
-
-        if subdir not in folders_snapshot:
-            make_dirs(subdir) #subdirs lets me grab only the directories :thumbs_up:
-            folders_snapshot.append(os.path.join(subdir.decode('utf-8')))
-
-        if (_file not in files_snapshot) or (files_snapshot[_file] != md5): #no need to re-add, going to implement a checking function (BUG: check subdir+file, not only file)
-            print("Copying file", _file)
-            copy_file(file)
-            files_snapshot[file.decode('utf-8')] = md5 #this subs the key also
-        else:
-            pass
-
-#this is to remove file's and folder's which aren't in data_folder anymore
-for subdir, dirs, files in os.walk(backup_folder):
-    for file in files: #gotta remove file not data_file, remember you cunt
-        file = os.path.join(subdir, file)
-        folder = subdir.decode('utf-8')
-        _folder = subdir.replace(backup_folder, data_folder).decode('utf-8')
-       # print(_folder, folder)
-        _file = file.decode('utf-8')
-        data_file = file.replace(backup_folder, data_folder).decode('utf-8')
-
-        if not os.path.exists(data_file):
-            print(data_file, "Was not found, removing...")
-            os.remove(_file)
-            del files_snapshot[data_file] #add an execption that in case i couldn't remove it from the files_snapshot, to remove the file eitherway without giving a KeyError
-        
-        if not os.path.exists(_folder): #works but can't remove not empty folders
-            print(_folder, "Folder was not found, removing...")
-            os.removedirs(folder)
-
-
-save_data(file_snapshot_location, files_snapshot) #saves the new file_snapshot
-save_data(folder_snapshot_location, folders_snapshot) #saves the new folder_snapshot
+if __name__ == "__main__":
+    main(file_snapshot_location, folder_snapshot_location)
