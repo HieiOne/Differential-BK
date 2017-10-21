@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-#TODO configuration file apart, pretty GUI
+#TODO configuration file apart, pretty GUI, make all paths "\\" for windows to escape them
 import os, hashlib, json
 from shutil import copy2
 
