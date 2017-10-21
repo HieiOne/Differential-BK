@@ -74,9 +74,6 @@ def look_for_removen_files(backup_folder, data_folder, files_snapshot, folders_s
         folder = subdir
         _folder = subdir.replace(backup_folder, data_folder) #to check if it's on data folder
 
-        if not dirs and not files and not os.path.exists(_folder): #removes empty folders
-            remove_dirs(folder, _folder, folders_snapshot)
-
         for file in files: #gotta remove file not data_file, remember you cunt
             file = os.path.join(subdir, file)
             _file = file
@@ -85,8 +82,11 @@ def look_for_removen_files(backup_folder, data_folder, files_snapshot, folders_s
             if not os.path.exists(data_file):
                 remove_files(_file, data_file, files_snapshot)
             
-            if not os.path.exists(_folder): #works but can't remove not empty folders
+            if not os.path.exists(_folder):
                 remove_dirs(folder, _folder, folders_snapshot)
+        
+        if not dirs and not files and not os.path.exists(_folder): #removes empty folders
+            remove_dirs(folder, _folder, folders_snapshot)
 
 def main(data_folder, backup_folder, file_snapshot_location, folder_snapshot_location):
     if not os.path.exists(file_snapshot_location) or not os.path.exists(folder_snapshot_location): #checks if the .json exists and if not it creates them
