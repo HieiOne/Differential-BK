@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import (QApplication, QComboBox, QDialog,
 from PyQt5.Qt import (QAbstractTableModel, Qt, QAbstractListModel, QWidget,
         pyqtSignal, QVBoxLayout, QDialogButtonBox, QFrame, QLabel, QIcon)
 
+
 class Dialog(QDialog):
     def __init__(self):
         super(Dialog, self).__init__()
@@ -34,20 +35,36 @@ class Dialog(QDialog):
         layout = QGridLayout()
         data = {'Data folder':['1','2','3','3'],  #change the data
                 'Backup folder':['4','5','6','2']}
+        data_folder = {1: "/mnt/SHARED_DATA/Repository/odb/data"}
+        backup_folder = {1: "/mnt/SHARED_DATA/Repository/odb/backup"}
 
         table = QTableWidget(self)
-        table.setRowCount(2) #create variable here for number of rows
+        table.setRowCount(len(data_folder)) #create variable here for number of rows
         table.setColumnCount(2)
 
         #Enter data onto Table
-        horHeaders = []
-        for n, key in enumerate(sorted(data.keys())):
-            horHeaders.append(key)
-            for m, item in enumerate(data[key]):
-                newitem = QTableWidgetItem(item)
-                newitem.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled) #adds checkbox
-                newitem.setCheckState(Qt.Unchecked)
-                table.setItem(m, n, newitem)
+        horHeaders = ["Backup folder", "Data folder" ]
+
+        for n, key in enumerate(backup_folder):
+            print(n)
+            print(backup_folder[key])
+            print(data_folder[key])
+            newbitem = QTableWidgetItem(backup_folder[key])
+            #newbitem.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled) #adds checkbox
+            #newbitem.setCheckState(Qt.Unchecked)
+            newditem = QTableWidgetItem(data_folder[key])
+            newditem.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled) #adds checkbox
+            newditem.setCheckState(Qt.Unchecked)
+            table.setItem(0, n, newbitem)
+            table.setItem(0, n+1, newditem)
+        #for n, key in enumerate(sorted(data.keys())):
+        #    print(n, key)
+        #    for m, item in enumerate(data[key]):
+        #        print(m, item)
+        #        newitem = QTableWidgetItem(item)
+        #        newitem.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled) #adds checkbox
+        #        newitem.setCheckState(Qt.Unchecked)
+        #        table.setItem(m, n, newitem)
         #Add Header
         table.setHorizontalHeaderLabels(horHeaders)        
 
