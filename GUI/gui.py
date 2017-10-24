@@ -2,13 +2,37 @@
 from PyQt5.QtWidgets import (QApplication, QComboBox, QDialog,
         QDialogButtonBox, QFormLayout, QGridLayout, QGroupBox, QHBoxLayout,
         QLabel, QLineEdit, QMenu, QMenuBar, QPushButton, QSpinBox, QTextEdit,
-        QVBoxLayout, QTableWidget, QTableWidgetItem, QTreeView, QTreeWidgetItem, QTreeWidget,)
+        QVBoxLayout, QTableWidget, QTableWidgetItem, QTreeView, QTreeWidgetItem, QTreeWidget, QTableView)
 
 from PyQt5.Qt import (QAbstractTableModel, Qt, QAbstractListModel, QWidget,
-        pyqtSignal, QVBoxLayout, QDialogButtonBox, QFrame, QLabel, QIcon)
+        pyqtSignal, QVBoxLayout, QDialogButtonBox, QFrame, QLabel, QIcon, QVariant)
+
+class Model(QAbstractTableModel):
+    def __init__(self, parent=None, *args):
+        QAbstractTableModel.__init__(self, parent, *args)
+        self.items = ['Row0_Column0','Row0_Column1','Row0_Column2']
+
+    def flags(self, index):
+        return Qt.ItemIsEnabled | Qt.ItemIsSelectable
+
+    def rowCount(self, parent):
+        return 1      
+    def columnCount(self, parent):
+        return len(self.items)  
+
+    def data(self, index, role):
+        if not index.isValid(): return QVariant()
+        elif role != Qt.DisplayRole:
+            return QVariant()
+
+        column=index.column()
+        if column<len(self.items):
+            return QVariant(self.items[column])
+        else:
+            return QVariant()
 
 
-class Dialog(QDialog):
+class Dialog(QAbstractTableModel):
     def __init__(self):
         super(Dialog, self).__init__()
 
@@ -26,54 +50,65 @@ class Dialog(QDialog):
         mainLayout.addWidget(buttonBox)
         self.setLayout(mainLayout)
 
-        self.resize(400, 250)
+        self.resize(600, 250)
         self.setWindowTitle("Own Differential Backup")
 
     def create_table(self):
-        self.table = QGroupBox("")
-        
+        tablemodel = Model(self)
+        #tablemodel = QAbstractTableModel
+        self.table = QTableView()
+        self.table.setModel(tablemodel)
+
         layout = QGridLayout()
-        data = {'Data folder':['1','2','3','3'],  #change the data
-                'Backup folder':['4','5','6','2']}
-        data_folder = {1: "/mnt/SHARED_DATA/Repository/odb/data"}
-        backup_folder = {1: "/mnt/SHARED_DATA/Repository/odb/backup"}
+
+        data_folder = {1: "/mnt/SHARED_DATA/Repository/odb/data", 2: "Algo", 3: "Algo dadada"}
+        backup_folder = {1: "/mnt/SHARED_DATA/Repository/odb/backup", 2: "Algo mes", 3: "Algo mes dadaada"}
 
         table = QTableWidget(self)
         table.setRowCount(len(data_folder)) #create variable here for number of rows
-        table.setColumnCount(2)
+        table.setColumnCount(3)
 
         #Enter data onto Table
-        horHeaders = ["Backup folder", "Data folder" ]
+        horHeaders = ["Backup folder", "Data folder", "" ]
 
+        row = 0
         for n, key in enumerate(backup_folder):
-            print(n)
+            n = 0
             print(backup_folder[key])
             print(data_folder[key])
-            newbitem = QTableWidgetItem(backup_folder[key])
-            #newbitem.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled) #adds checkbox
-            #newbitem.setCheckState(Qt.Unchecked)
-            newditem = QTableWidgetItem(data_folder[key])
-            newditem.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled) #adds checkbox
-            newditem.setCheckState(Qt.Unchecked)
-            table.setItem(0, n, newbitem)
-            table.setItem(0, n+1, newditem)
-        #for n, key in enumerate(sorted(data.keys())):
-        #    print(n, key)
-        #    for m, item in enumerate(data[key]):
-        #        print(m, item)
-        #        newitem = QTableWidgetItem(item)
-        #        newitem.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled) #adds checkbox
-        #        newitem.setCheckState(Qt.Unchecked)
-        #        table.setItem(m, n, newitem)
+            newbackupitem = QTableWidgetItem(backup_folder[key])
+            newdataitem = QTableWidgetItem(data_folder[key])
+
+            newcheckbox = QTableWidgetItem("")
+            newcheckbox.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled) #adds checkbox
+            newcheckbox.setCheckState(Qt.Unchecked)
+            
+
+            table.setItem(row, n, newbackupitem)
+            table.setItem(row, n+1, newdataitem)
+            table.setItem(row, n+2, newcheckbox)
+            row += 1
+
+        table.itemClicked.connect(self.handleItemClicked)
         #Add Header
         table.setHorizontalHeaderLabels(horHeaders)        
 
         #Adjust size of Table
         table.resizeColumnsToContents()
         table.resizeRowsToContents()
+        table.setSelectionBehavior(QTableView.SelectRows)
+        
         layout.addWidget(table, 0,0)   
 
         self.table.setLayout(layout)
+        self._list = []
+
+    def handleItemClicked(self, item):
+        
+        rows = self.table.selectionModel().selectedIndexes()
+        for row in rows:
+            cellContent = row.data()
+            print(cellContent)
 
     def horizontal_button(self):
         self.hlayout = QGroupBox("")
