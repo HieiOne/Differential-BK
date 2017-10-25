@@ -7,32 +7,7 @@ from PyQt5.QtWidgets import (QApplication, QComboBox, QDialog,
 from PyQt5.Qt import (QAbstractTableModel, Qt, QAbstractListModel, QWidget,
         pyqtSignal, QVBoxLayout, QDialogButtonBox, QFrame, QLabel, QIcon, QVariant)
 
-class Model(QAbstractTableModel):
-    def __init__(self, parent=None, *args):
-        QAbstractTableModel.__init__(self, parent, *args)
-        self.items = ['Row0_Column0','Row0_Column1','Row0_Column2']
-
-    def flags(self, index):
-        return Qt.ItemIsEnabled | Qt.ItemIsSelectable
-
-    def rowCount(self, parent):
-        return 1      
-    def columnCount(self, parent):
-        return len(self.items)  
-
-    def data(self, index, role):
-        if not index.isValid(): return QVariant()
-        elif role != Qt.DisplayRole:
-            return QVariant()
-
-        column=index.column()
-        if column<len(self.items):
-            return QVariant(self.items[column])
-        else:
-            return QVariant()
-
-
-class Dialog(QAbstractTableModel):
+class Dialog(QDialog):
     def __init__(self):
         super(Dialog, self).__init__()
 
@@ -54,10 +29,10 @@ class Dialog(QAbstractTableModel):
         self.setWindowTitle("Own Differential Backup")
 
     def create_table(self):
-        tablemodel = Model(self)
+        #tablemodel = Model(self)
         #tablemodel = QAbstractTableModel
         self.table = QTableView()
-        self.table.setModel(tablemodel)
+        #self.table.setModel(tablemodel)
 
         layout = QGridLayout()
 
@@ -74,8 +49,6 @@ class Dialog(QAbstractTableModel):
         row = 0
         for n, key in enumerate(backup_folder):
             n = 0
-            print(backup_folder[key])
-            print(data_folder[key])
             newbackupitem = QTableWidgetItem(backup_folder[key])
             newdataitem = QTableWidgetItem(data_folder[key])
 
